@@ -104,14 +104,14 @@ namespace lslidar_driver {
 
     struct FiringC16 {
         uint16_t firing_azimuth[BLOCKS_PER_PACKET];
-        uint16_t azimuth[SCANS_PER_PACKET];
+        int azimuth[SCANS_PER_PACKET];
         double distance[SCANS_PER_PACKET];
         double intensity[SCANS_PER_PACKET];
     };
 
     struct FiringC32 {
         uint16_t firing_azimuth[BLOCKS_PER_PACKET];
-        uint16_t azimuth[SCANS_PER_PACKET];
+        int azimuth[SCANS_PER_PACKET];
         double distance[SCANS_PER_PACKET];
         double intensity[SCANS_PER_PACKET];
     };

@@ -883,16 +883,16 @@ namespace lslidar_driver {
                         }
                         // horizontal correction angle
                         int angle_a0 = difop_packet_ptr->data[186] * 256 + difop_packet_ptr->data[187];
-                        adjust_angle[0] = angle_a0 > 32767 ? angle_a0 - 65535 : angle_a0;
+                        adjust_angle[0] = angle_a0 > 32767 ? 32767 - angle_a0 : angle_a0;
 
                         int angle_a1 = difop_packet_ptr->data[190] * 256 + difop_packet_ptr->data[191];
-                        adjust_angle[1] = angle_a1 > 32767 ? angle_a1 - 65535 : angle_a1;
+                        adjust_angle[1] = angle_a1 > 32767 ? 32767 - angle_a1 : angle_a1;
 
                         int angle_a2 = difop_packet_ptr->data[188] * 256 + difop_packet_ptr->data[189];
-                        adjust_angle[2] = angle_a2 > 32767 ? angle_a2 - 65535 : angle_a2;
+                        adjust_angle[2] = angle_a2 > 32767 ? 32767 - angle_a2 : angle_a2;
 
                         int angle_a3 = difop_packet_ptr->data[192] * 256 + difop_packet_ptr->data[193];
-                        adjust_angle[3] = angle_a3 > 32767 ? angle_a3 - 65535 : angle_a3;
+                        adjust_angle[3] = angle_a3 > 32767 ? 32767 - angle_a3 : angle_a3;
                     } else {
                         for (int j = 0; j < 32; ++j) {
                             uint8_t data1 = difop_packet_ptr->data[882 + 2 * j];
@@ -913,16 +913,16 @@ namespace lslidar_driver {
                         }
                         // horizontal correction angle
                         int angle_a0 = difop_packet_ptr->data[34] * 256 + difop_packet_ptr->data[35];
-                        adjust_angle[0] = angle_a0 > 32767 ? angle_a0 - 65535 : angle_a0;
+                        adjust_angle[0] = angle_a0 > 32767 ? 32767 - angle_a0 : angle_a0;
 
                         int angle_a1 = difop_packet_ptr->data[42] * 256 + difop_packet_ptr->data[43];
-                        adjust_angle[1] = angle_a1 > 32767 ? angle_a1 - 65535 : angle_a1;
+                        adjust_angle[1] = angle_a1 > 32767 ? 32767 - angle_a1 : angle_a1;
 
                         int angle_a2 = difop_packet_ptr->data[66] * 256 + difop_packet_ptr->data[67];
-                        adjust_angle[2] = angle_a2 > 32767 ? angle_a2 - 65535 : angle_a2;
+                        adjust_angle[2] = angle_a2 > 32767 ? 32767 - angle_a2 : angle_a2;
 
                         int angle_a3 = difop_packet_ptr->data[68] * 256 + difop_packet_ptr->data[69];
-                        adjust_angle[3] = angle_a3 > 32767 ? angle_a3 - 65535 : angle_a3;
+                        adjust_angle[3] = angle_a3 > 32767 ? 32767 - angle_a3 : angle_a3;
                     }
                     config_vert = false;
                 }
@@ -1236,9 +1236,9 @@ namespace lslidar_driver {
                 // calibration azimuth ，1°
                 if ("c32_2" == c32_type) {
 
-                    int adjust_diff = adjust_angle[1] - adjust_angle[0];
+//                    int adjust_diff = adjust_angle[1] - adjust_angle[0];
 
-                    if (adjust_diff > 300 && adjust_diff < 460) {
+//                    if (adjust_diff > 300 && adjust_diff < 460) {
                         // fpga :v 2.8 3.0
                         if (3 == c32_fpga_type) {
                             if (1 >= scan_fir_idx % 4) {
@@ -1248,7 +1248,8 @@ namespace lslidar_driver {
                             }
                             // ROS_INFO("id: %d--azi: %d",blk_idx * 32 + scan_fir_idx,firings.azimuth[blk_idx * 32 + scan_fir_idx]);
                         }
-                    } else {
+//                    }
+                else {
                         // fpga: v2.6
                         if (0 == scan_fir_idx % 2) {
                             firings.azimuth[blk_idx * 32 + scan_fir_idx] += adjust_angle[0];
@@ -1311,6 +1312,8 @@ namespace lslidar_driver {
                     }
 
                 }
+                if(firings.azimuth[blk_idx * 32 + scan_fir_idx] < 0)	    firings.azimuth[blk_idx * 32 + scan_fir_idx]+=36000;
+                if(firings.azimuth[blk_idx * 32 + scan_fir_idx] > 36000)	firings.azimuth[blk_idx * 32 + scan_fir_idx]-=36000;
             }
 
         }
