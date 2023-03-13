@@ -1,71 +1,38 @@
-### LSLIDAR_CX 3.0 驱动说明
+## LSLIDAR_CX_ 3.0_ROS 驱动说明
 
+## 1.工程介绍
 
+​		LSLIDAR_CX_3.0_ROS为linux环境下雷达ros驱动，适用于镭神C16/C32,2.6/2.8/3.0版本的雷达 ，程序在ubuntu18.04 ros melodic , ubuntu20.04 ros noetic 下测试通过。
 
-### 原始版本：
-
-* LSLIDAR_CX_V3.2.2_220507_ROS
-
-
-
-### 更新版本：
-
-- LSLIDAR_CX_V3.2.3_220520_ROS
-- 更新说明: 优化c32雷达垂直角度校准
-
-
-
-### 更新版本：
-
-- LSLIDAR_CX_V3.2.5_220729_ROS
-- 更新说明:
-
-  - 设备包和数据包在进秒时没对齐的情况下，增加判断，未及时进秒加1秒，提前进秒减1秒
-  - 修复c32雷达点云缺失的bug
-  - 未接收到设备包之前不发布点云      
-
-
-
-
-### 更新版本：
-
-- LSLIDAR_CX_V3.2.6_220905_ROS
-- 更新说明：
-  - 兼容1212字节版本的雷达， 通过修改launch文件参数 <arg name="packet_size" default="1206"/>  //   udp包长1206或1212,若为1212字节雷达改为1212
-
-
-
-### 更新版本：
-
-- LSLIDAR_CX_V3.2.7_221008_ROS
-- 更新说明：
-  - 修正laserscan类型话题方向，跟pointcloud2点云保持一致。
-
-### 更新版本：
-
-- LSLIDAR_CX_V3.2.8_221214_ROS
-
-- 更新说明：
-  - 优化1206字节雷达包的时间解析。
-  - 数据包间隔时间通过两包相减插值求点的时间。
-  
-  
-
-### 更新版本：
-
-- LSLIDAR_CX_V3.2.9_221228_ROS
-- 更新说明：
-  - 修复C32雷达补偿角度为负数时导致点云分层的问题。
-
-
-
-
-
-### 适用范围：
+## 2.适用范围：
 
 * 适用于镭神c16、c32, 2.6\2.8\3.0版本的雷达
 
-### 编译与运行：
+  
+
+## 3.依赖
+
+1.ubuntu18.04 ros melodic/ubuntu20.04 ros noetic
+
+2.ros依赖
+
+```bash
+# 安装
+sudo apt-get install ros-$ROS_DISTRO-pcl-ros ros-$ROS_DISTRO-pluginlib  ros-$ROS_DISTRO-pcl-conversions 
+```
+
+3.其他依赖
+
+pcap,boost
+
+~~~bash
+sudo apt-get install libpcap-dev
+sudo apt-get install libboost${BOOST_VERSION}-dev   #选择适合的版本
+~~~
+
+
+
+## 4.编译与运行：
 
 ~~~shell
 mkdir -p ~/lslidar_ws/src
@@ -79,7 +46,7 @@ roslaunch lslidar_driver lslidar_c16.launch #启动c16雷达
 
 
 
-### launch 文件参数说明：
+## 5.launch 文件参数说明：
 
 - c16为例
 
@@ -204,3 +171,93 @@ roslaunch lslidar_driver lslidar_c16.launch #启动c16雷达
 
   
 
+## FAQ
+
+Bug Report
+
+Original version : LSLIDAR_CX_V3.2.2_220507_ROS
+
+Modify:  original version
+
+Date    : 2022-05-07
+
+---------------
+
+
+
+### 更新版本：
+
+-----
+
+- LSLIDAR_CX_V3.2.3_220520_ROS
+
+- 更新说明: 优化c32雷达垂直角度校准
+
+
+
+### 更新版本：
+
+---------
+
+- LSLIDAR_CX_V3.2.5_220729_ROS
+
+- 更新说明:
+
+  - 设备包和数据包在进秒时没对齐的情况下，增加判断，未及时进秒加1秒，提前进秒减1秒
+  - 修复c32雷达点云缺失的bug
+  - 未接收到设备包之前不发布点云      
+
+
+
+
+### 更新版本：
+
+------
+
+- LSLIDAR_CX_V3.2.6_220905_ROS
+
+- 更新说明：
+  - 兼容1212字节版本的雷达， 通过修改launch文件参数 <arg name="packet_size" default="1206"/>  //   udp包长1206或1212,若为1212字节雷达改为1212
+
+
+
+### 更新版本：
+
+--------------
+
+- LSLIDAR_CX_V3.2.7_221008_ROS
+
+- 更新说明：
+  - 修正laserscan类型话题方向，跟pointcloud2点云保持一致。
+
+### 更新版本：
+
+----------------
+
+- LSLIDAR_CX_V3.2.8_221214_ROS
+
+- 更新说明：
+
+  - 优化1206字节雷达包的时间解析。
+  - 数据包间隔时间通过两包相减插值求点的时间。
+
+  
+
+### 更新版本：
+
+----------------
+
+- LSLIDAR_CX_V3.2.9_221228_ROS
+- 更新说明：
+  - 修复C32雷达补偿角度为负数时导致点云分层的问题。
+
+
+
+### 更新版本：
+
+----------------
+
+- LSLIDAR_CX_V3.3.1_230313_ROS
+
+- 更新说明：
+  - 降低cpu占用；boost库改为标准库；点的时间改为相对时间。

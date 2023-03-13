@@ -115,8 +115,8 @@ namespace lslidar_driver {
             msop_input_.reset(new lslidar_driver::InputSocket(pnh, msop_udp_port));
             difop_input_.reset(new lslidar_driver::InputSocket(pnh, difop_udp_port));
         }
-        difop_thread_ = boost::shared_ptr<boost::thread>(
-                new boost::thread(boost::bind(&lslidarDriver::difopPoll, this)));
+        difop_thread_ = std::shared_ptr<std::thread>(
+                new std::thread(std::bind(&lslidarDriver::difopPoll, this)));
 
 
         return true;
@@ -156,6 +156,7 @@ namespace lslidar_driver {
             }
             sensor_msgs::PointCloud2 pc_msg;
             pcl::toROSMsg(*point_cloud, pc_msg);
+            pc_msg.header.stamp = ros::Time(sweep_end_time);
             pointcloud_pub.publish(pc_msg);
         } else {
             VPointcloud::Ptr point_cloud(new VPointcloud());
@@ -184,6 +185,7 @@ namespace lslidar_driver {
             }
             sensor_msgs::PointCloud2 pc_msg;
             pcl::toROSMsg(*point_cloud, pc_msg);
+            pc_msg.header.stamp = ros::Time(sweep_end_time);
             pointcloud_pub.publish(pc_msg);
 
         }
@@ -333,7 +335,6 @@ namespace lslidar_driver {
 
     lslidarC16Driver::~lslidarC16Driver() {
         if (difop_thread_ != nullptr) {
-            difop_thread_->interrupt();
             difop_thread_->join();
         }
     }
@@ -370,9 +371,8 @@ namespace lslidar_driver {
 
         // create the sin and cos table for different azimuth values
         for (int j = 0; j < 36000; ++j) {
-            double angle = static_cast<double>(j) / 100.0 * DEG_TO_RAD;
-            sin_azimuth_table[j] = sin(angle);
-            cos_azimuth_table[j] = cos(angle);
+            sin_azimuth_table[j] = sin(j * 0.01 * DEG_TO_RAD);
+            cos_azimuth_table[j] = cos(j * 0.01 * DEG_TO_RAD);
         }
         return true;
     }
@@ -468,8 +468,6 @@ namespace lslidar_driver {
             } else if (rc < 0) {
                 return;
             }
-            ros::spinOnce();
-
         }
     }
 
@@ -653,29 +651,30 @@ namespace lslidar_driver {
             size_t table_idx = firings.azimuth[fir_idx];
             double cos_azimuth = cos_azimuth_table[table_idx];
             double sin_azimuth = sin_azimuth_table[table_idx];
+
+
             double x_coord, y_coord, z_coord;
             if (coordinate_opt) {
+                int tmp_idx = 1468 - firings.azimuth[fir_idx] < 0 ? 1468 - firings.azimuth[fir_idx] + 36000 : 1468 - firings.azimuth[fir_idx];
                 x_coord = firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * cos_azimuth +
-                          R1_ * cos((14.68 - firings.azimuth[fir_idx] * 0.01) * DEG_TO_RAD);
+                          R1_ * cos_azimuth_table[tmp_idx];
                 y_coord = -firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * sin_azimuth +
-                          R1_ * sin((14.68 - firings.azimuth[fir_idx] * 0.01) * DEG_TO_RAD);
+                          R1_ * sin_azimuth_table[tmp_idx];
                 z_coord = firings.distance[fir_idx] * c16_sin_scan_altitude[fir_idx % 16];
 
             } else {
                 //Y-axis correspondence 0 degree
+                int tmp_idx = firings.azimuth[fir_idx] - 1468 < 0 ? firings.azimuth[fir_idx] -1468 + 36000 : firings.azimuth[fir_idx] -1468;
                 x_coord = firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * sin_azimuth +
-                          R1_ * sin((firings.azimuth[fir_idx] * 0.01 - 14.68) * DEG_TO_RAD);
+                          R1_ * sin_azimuth_table[tmp_idx];
                 y_coord = firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * cos_azimuth +
-                          R1_ * cos((firings.azimuth[fir_idx] * 0.01 - 14.68) * DEG_TO_RAD);
+                          R1_ * cos_azimuth_table[tmp_idx];
                 z_coord = firings.distance[fir_idx] * c16_sin_scan_altitude[fir_idx % 16];
             }
             // computer the time of the point
-            double time;
-            if (fabs(last_packet_timestamp) < 1e-6) {
-                time = packet->stamp.toSec();
-            } else {
-                time = packet->stamp.toSec() - (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time;
-            }
+            double time = packet_timestamp  -
+                          (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time - sweep_end_time;
+
             int remapped_scan_idx = (fir_idx % 16) % 2 == 0 ? (fir_idx % 16) / 2 : (fir_idx % 16) / 2 + 8;
 
             sweep_data->points.push_back(lslidar_msgs::LslidarPoint());
@@ -695,16 +694,7 @@ namespace lslidar_driver {
 
         if (end_fir_idx != SCANS_PER_PACKET) {
             //publish Last frame scan
-            if (1 == return_mode) {
-                sweep_end_time =
-                        packet->stamp.toSec() - (SCANS_PER_PACKET - end_fir_idx) * packet_interval_time;
-            } else {
-                sweep_end_time =
-                        packet->stamp.toSec() -
-                        static_cast<double>( SCANS_PER_PACKET * 0.5 -
-                                             (end_fir_idx - round((end_fir_idx / 32) * 0.5) * 32)) *
-                        packet_interval_time;
-            }
+            sweep_end_time =  packet_timestamp - (SCANS_PER_PACKET - end_fir_idx -1) * packet_interval_time;
 
             sweep_end_time = sweep_end_time > 0 ? sweep_end_time : 0;
             publishPointcloud();
@@ -726,28 +716,25 @@ namespace lslidar_driver {
                 double sin_azimuth = sin_azimuth_table[table_idx];
                 double x_coord, y_coord, z_coord;
                 if (coordinate_opt) {
+                    int tmp_idx = 1468 - firings.azimuth[fir_idx] < 0 ? 1468 - firings.azimuth[fir_idx] + 36000 : 1468 - firings.azimuth[fir_idx];
                     x_coord = firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * cos_azimuth +
-                              R1_ * cos((14.68 - firings.azimuth[fir_idx] * 0.01) * DEG_TO_RAD);
+                              R1_ * cos_azimuth_table[tmp_idx];
                     y_coord = -firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * sin_azimuth +
-                              R1_ * sin((14.68 - firings.azimuth[fir_idx] * 0.01) * DEG_TO_RAD);
+                              R1_ * sin_azimuth_table[tmp_idx];
                     z_coord = firings.distance[fir_idx] * c16_sin_scan_altitude[fir_idx % 16];
 
                 } else {
                     //Y-axis correspondence 0 degree
+                    int tmp_idx = firings.azimuth[fir_idx] - 1468 < 0 ? firings.azimuth[fir_idx] -1468 + 36000 : firings.azimuth[fir_idx] -1468;
                     x_coord = firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * sin_azimuth +
-                              R1_ * sin((firings.azimuth[fir_idx] * 0.01 - 14.68) * DEG_TO_RAD);
+                              R1_ * sin_azimuth_table[tmp_idx];
                     y_coord = firings.distance[fir_idx] * c16_cos_scan_altitude[fir_idx % 16] * cos_azimuth +
-                              R1_ * cos((firings.azimuth[fir_idx] * 0.01 - 14.68) * DEG_TO_RAD);
+                              R1_ * cos_azimuth_table[tmp_idx];
                     z_coord = firings.distance[fir_idx] * c16_sin_scan_altitude[fir_idx % 16];
-
                 }
                 // computer the time of the point
-                double time;
-                if (fabs(last_packet_timestamp) < 1e-6) {
-                    time = packet->stamp.toSec();
-                } else {
-                    time = packet->stamp.toSec() - (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time;
-                }
+                double time = packet_timestamp  -
+                              (SCANS_PER_PACKET - fir_idx -1) * packet_interval_time - sweep_end_time;
                 int remapped_scan_idx = (fir_idx % 16) % 2 == 0 ? (fir_idx % 16) / 2 : (fir_idx % 16) / 2 + 8;
                 sweep_data->points.push_back(lslidar_msgs::LslidarPoint());
                 lslidar_msgs::LslidarPoint &new_point = sweep_data->points[
@@ -776,7 +763,6 @@ namespace lslidar_driver {
 
     lslidarC32Driver::~lslidarC32Driver() {
         if (difop_thread_ != nullptr) {
-            difop_thread_->interrupt();
             difop_thread_->join();
         }
     }
@@ -909,6 +895,7 @@ namespace lslidar_driver {
                             for (int k = 0; k < 32; ++k) {
                                 c32_sin_scan_altitude[k] = sin(c32_config_vertical_angle[k] * DEG_TO_RAD);
                                 c32_cos_scan_altitude[k] = cos(c32_config_vertical_angle[k] * DEG_TO_RAD);
+
                             }
                         }
                         // horizontal correction angle
@@ -947,7 +934,6 @@ namespace lslidar_driver {
             } else if (rc < 0) {
                 return;
             }
-            ros::spinOnce();
         }
     }
 
@@ -1346,13 +1332,8 @@ namespace lslidar_driver {
                 z_coord = firings.distance[fir_idx] * c32_sin_scan_altitude[fir_idx % 32];
             }
             // computer the time of the point
-            double time;
-
-            if (fabs(last_packet_timestamp) < 1e-6) {
-                time = packet->stamp.toSec();
-            } else {
-                time = packet->stamp.toSec() - (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time;
-            }
+            double time = packet_timestamp  -
+                          (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time - sweep_end_time;
 
 
             int remapped_scan_idx;
@@ -1379,8 +1360,7 @@ namespace lslidar_driver {
         if (end_fir_idx != SCANS_PER_PACKET) {
             //publish Last frame scan
 
-            sweep_end_time =
-                    packet->stamp.toSec() - static_cast<double>(SCANS_PER_PACKET - end_fir_idx) * packet_interval_time;
+            sweep_end_time =  packet_timestamp - (SCANS_PER_PACKET - end_fir_idx -1) * packet_interval_time;
             sweep_end_time = sweep_end_time > 0 ? sweep_end_time : 0;
             publishPointcloud();
             if (publish_scan) publishScan();
@@ -1420,12 +1400,8 @@ namespace lslidar_driver {
 
                 }
                 // computer the time of the point
-                double time;
-                if (fabs(last_packet_timestamp) < 1e-6) {
-                    time = packet->stamp.toSec();
-                } else {
-                    time = packet->stamp.toSec() - (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time;
-                }
+                double time = packet_timestamp  -
+                              (SCANS_PER_PACKET - fir_idx - 1) * packet_interval_time - sweep_end_time;
                 int remapped_scan_idx;
                 if (c32_fpga_type == 2) {
                     remapped_scan_idx = fir_idx % 32;

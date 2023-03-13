@@ -32,6 +32,7 @@
 #include <pcl_ros/impl/transforms.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <boost/shared_ptr.hpp>
+#include <thread>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
 #include <pcl_ros/point_cloud.h>
@@ -102,25 +103,20 @@ namespace lslidar_driver {
         uint8_t factory[2];
     };
 
-    struct FiringC16 {
+    struct Firing {
         uint16_t firing_azimuth[BLOCKS_PER_PACKET];
         int azimuth[SCANS_PER_PACKET];
         double distance[SCANS_PER_PACKET];
         double intensity[SCANS_PER_PACKET];
     };
 
-    struct FiringC32 {
-        uint16_t firing_azimuth[BLOCKS_PER_PACKET];
-        int azimuth[SCANS_PER_PACKET];
-        double distance[SCANS_PER_PACKET];
-        double intensity[SCANS_PER_PACKET];
-    };
+
 
     struct PointXYZIRT {
         PCL_ADD_POINT4D
         float intensity;
         std::uint16_t ring;
-        double time;
+        float time;
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW //make sure our new allocators are aligned
     }EIGEN_ALIGN16; //enforce SSE padding for correct memory alignment
 
@@ -212,9 +208,9 @@ namespace lslidar_driver {
         double sin_azimuth_table[36000];
 
 
-        boost::shared_ptr<Input> msop_input_;
-        boost::shared_ptr<Input> difop_input_;
-        boost::shared_ptr<boost::thread> difop_thread_;
+        std::shared_ptr<Input> msop_input_;
+        std::shared_ptr<Input> difop_input_;
+        std::shared_ptr<std::thread> difop_thread_;
 
         lslidar_msgs::LslidarScanPtr sweep_data;
         ros::NodeHandle nh;
@@ -255,7 +251,7 @@ namespace lslidar_driver {
 
 
     private:
-        FiringC16 firings;
+        Firing firings;
         double c16_vertical_angle[16];
         double c16_config_vertical_angle[16];
         //double c16_scan_altitude[16];
@@ -281,7 +277,7 @@ namespace lslidar_driver {
 
 
     private:
-        FiringC32 firings;
+        Firing firings;
         double c32_vertical_angle[32];
         double c32_config_vertical_angle[32];
         double c32_config_tmp_angle[32];
@@ -303,6 +299,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(lslidar_driver::PointXYZIRT,
                                           (float, z, z)
                                           (float, intensity, intensity)
                                           (std::uint16_t, ring, ring)
-                                          (double, time, time))
+                                          (float, time, time))
 
 #endif
