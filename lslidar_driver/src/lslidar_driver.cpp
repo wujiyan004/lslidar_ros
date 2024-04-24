@@ -1317,6 +1317,7 @@ namespace lslidar_driver {
             double sin_azimuth = sin_azimuth_table[table_idx];
             double x_coord, y_coord, z_coord;
             if (coordinate_opt) {
+            int tmp_idx = 1298 - firings.azimuth[fir_idx] < 0 ? 1298 - firings.azimuth[fir_idx] + 36000 : 1298 - firings.azimuth[fir_idx];
                 x_coord = firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * cos_azimuth +
                           R2_ * cos((12.98 - firings.azimuth[fir_idx] * 0.01) * DEG_TO_RAD);
                 y_coord = -firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * sin_azimuth +
@@ -1325,6 +1326,7 @@ namespace lslidar_driver {
 
             } else {
                 //Y-axis correspondence 0 degree
+               int tmp_idx = firings.azimuth[fir_idx] - 1298 < 0 ? firings.azimuth[fir_idx] -1298 + 36000 : firings.azimuth[fir_idx] -1298;
                 x_coord = firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * sin_azimuth +
                           R2_ * sin((firings.azimuth[fir_idx] * 0.01 - 12.98) * DEG_TO_RAD);
                 y_coord = firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * cos_azimuth +
@@ -1384,6 +1386,7 @@ namespace lslidar_driver {
                 double sin_azimuth = sin_azimuth_table[table_idx];
                 double x_coord, y_coord, z_coord;
                 if (coordinate_opt) {
+                  int tmp_idx = 1298 - firings.azimuth[fir_idx] < 0 ? 1298 - firings.azimuth[fir_idx] + 36000 : 1298 - firings.azimuth[fir_idx];
                     x_coord = firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * cos_azimuth +
                               R2_ * cos((12.98 - firings.azimuth[fir_idx] * 0.01) * DEG_TO_RAD);
                     y_coord = -firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * sin_azimuth +
@@ -1392,6 +1395,7 @@ namespace lslidar_driver {
 
                 } else {
                     //Y-axis correspondence 0 degree
+                    int tmp_idx = firings.azimuth[fir_idx] - 1298 < 0 ? firings.azimuth[fir_idx] -1298 + 36000 : firings.azimuth[fir_idx] -1298;
                     x_coord = firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * sin_azimuth +
                               R2_ * sin((firings.azimuth[fir_idx] * 0.01 - 12.98) * DEG_TO_RAD);
                     y_coord = firings.distance[fir_idx] * c32_cos_scan_altitude[fir_idx % 32] * cos_azimuth +

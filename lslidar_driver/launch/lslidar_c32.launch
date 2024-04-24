@@ -34,7 +34,7 @@
     <param name="use_gps_ts" value="$(arg use_gps_ts)"/>
     <param name="min_range" value="0.15"/>
     <param name="max_range" value="150.0"/>
-    <param name="horizontal_angle_resolution" value="0.2"/>
+    <param name="horizontal_angle_resolution" value="0.18"/>
     <param name="frame_id" value="laser_link"/>
     <param name="distance_unit" value="0.4"/>
     <param name="angle_disable_min" value="0"/>
